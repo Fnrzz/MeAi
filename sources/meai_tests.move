@@ -10,6 +10,8 @@ module meai::meai_tests {
     use meai::access_module::{Self, ApiKeyRegistry};
     use meai::quota_module::{Self, QuotaObject};
     use meai::registry_module::{Self, ModelRegistry};
+    use meai::agent_module::{Self, AgentRegistry, Agent};
+    use meai::agent_hire::{Self, TaskRegistry, AgentTask};
 
     const ADMIN: address = @meai;
     const USER1: address = @0xa11ce;
@@ -17,12 +19,19 @@ module meai::meai_tests {
 
     const MIST_PER_SUI: u64 = 1_000_000_000;
 
+    /// Helper: generate a fake object ID for testing
+    fun fake_agent_id(): ID {
+        object::id_from_address(@0xfa1ce)
+    }
+
     /// Helper: call module init functions via test-only wrappers
     fun publish_module(scenario: &mut test_scenario::Scenario) {
         let ctx = scenario.ctx();
         payment_module::create_treasury_for_testing(ctx);
         access_module::create_registry_for_testing(ctx);
         registry_module::create_registry_for_testing(ctx);
+        agent_module::create_registry_for_testing(ctx);
+        agent_hire::create_registry_for_testing(ctx);
     }
 
     // ═══════════════════════════════════════════
@@ -378,6 +387,250 @@ module meai::meai_tests {
         );
 
         test_scenario::return_shared(registry);
+        scenario.end();
+    }
+
+    // ═══════════════════════════════════════════
+    //  AGENT MODULE
+    // ═══════════════════════════════════════════
+
+    #[test]
+    fun test_agent_register_and_query() {
+        let mut scenario = test_scenario::begin(ADMIN);
+        scenario.create_system_objects();
+        publish_module(&mut scenario);
+
+        scenario.next_tx(ADMIN);
+        let mut registry = scenario.take_shared<AgentRegistry>();
+        let mut clock = scenario.take_shared<Clock>();
+
+        let agent_name = string::utf8(b"ResearchBot");
+        let owner = USER1;
+        let prompt = string::utf8(b"You are a research assistant.");
+        let allowed = vector[string::utf8(b"gpt-4o"), string::utf8(b"claude-sonnet-4")];
+        let budget = 100000u64;
+
+        let agent_id = agent_module::register_agent(
+            &mut registry, agent_name, owner, prompt, allowed, budget, &clock, scenario.ctx(),
+        );
+
+        assert!(agent_module::total_agents(&registry) == 1);
+
+        test_scenario::return_shared(registry);
+        test_scenario::return_shared(clock);
+
+        scenario.next_tx(USER1);
+        let agent = test_scenario::take_from_sender_by_id<Agent>(&scenario, agent_id);
+        assert!(agent_module::budget_remaining(&agent) == 100000);
+        assert!(agent_module::is_model_allowed(&agent, &string::utf8(b"gpt-4o")));
+        assert!(!agent_module::is_model_allowed(&agent, &string::utf8(b"llama-3-70b")));
+
+        let _id = object::id(&agent);
+        transfer::public_transfer(agent, USER1);
+        scenario.end();
+    }
+
+    #[test]
+    fun test_agent_deduct_reduces_budget() {
+        let mut scenario = test_scenario::begin(ADMIN);
+        scenario.create_system_objects();
+        publish_module(&mut scenario);
+
+        scenario.next_tx(ADMIN);
+        let mut registry = scenario.take_shared<AgentRegistry>();
+        let mut clock = scenario.take_shared<Clock>();
+
+        let agent_id = agent_module::register_agent(
+            &mut registry,
+            string::utf8(b"TestAgent"), USER1, string::utf8(b""),
+            vector[], 5000u64, &clock, scenario.ctx(),
+        );
+        test_scenario::return_shared(registry);
+        test_scenario::return_shared(clock);
+
+        scenario.next_tx(USER1);
+        let mut agent = test_scenario::take_from_sender_by_id<Agent>(&scenario, agent_id);
+        let mut clock2 = scenario.take_shared<Clock>();
+
+        agent_module::deduct_agent(&mut agent, 1000, string::utf8(b"gpt-4o"), &clock2);
+        assert!(agent_module::budget_remaining(&agent) == 4000);
+
+        agent_module::deduct_agent(&mut agent, 2000, string::utf8(b"claude-sonnet-4"), &clock2);
+        assert!(agent_module::budget_remaining(&agent) == 2000);
+
+        test_scenario::return_shared(clock2);
+        transfer::public_transfer(agent, USER1);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = meai::agent_module::EInsufficientBudget)]
+    fun test_agent_deduct_insufficient_budget_fails() {
+        let mut scenario = test_scenario::begin(ADMIN);
+        scenario.create_system_objects();
+        publish_module(&mut scenario);
+
+        scenario.next_tx(ADMIN);
+        let mut registry = scenario.take_shared<AgentRegistry>();
+        let mut clock = scenario.take_shared<Clock>();
+
+        let agent_id = agent_module::register_agent(
+            &mut registry,
+            string::utf8(b"PoorAgent"), USER1, string::utf8(b""),
+            vector[], 100u64, &clock, scenario.ctx(),
+        );
+        test_scenario::return_shared(registry);
+        test_scenario::return_shared(clock);
+
+        scenario.next_tx(USER1);
+        let mut agent = test_scenario::take_from_sender_by_id<Agent>(&scenario, agent_id);
+        let mut clock2 = scenario.take_shared<Clock>();
+        agent_module::deduct_agent(&mut agent, 200, string::utf8(b"gpt-4o"), &clock2);
+        test_scenario::return_shared(clock2);
+        transfer::public_transfer(agent, USER1);
+        scenario.end();
+    }
+
+    #[test]
+    fun test_agent_deactivate() {
+        let mut scenario = test_scenario::begin(ADMIN);
+        scenario.create_system_objects();
+        publish_module(&mut scenario);
+
+        scenario.next_tx(ADMIN);
+        let mut registry = scenario.take_shared<AgentRegistry>();
+        let mut clock = scenario.take_shared<Clock>();
+
+        let agent_id = agent_module::register_agent(
+            &mut registry,
+            string::utf8(b"TestAgent"), ADMIN, string::utf8(b""),
+            vector[], 5000u64, &clock, scenario.ctx(),
+        );
+        test_scenario::return_shared(registry);
+        test_scenario::return_shared(clock);
+
+        scenario.next_tx(ADMIN);
+        let mut agent = test_scenario::take_from_sender_by_id<Agent>(&scenario, agent_id);
+        let mut clock2 = scenario.take_shared<Clock>();
+
+        agent_module::deactivate_agent(&mut agent, &clock2, scenario.ctx());
+
+        test_scenario::return_shared(clock2);
+        transfer::public_transfer(agent, ADMIN);
+        scenario.end();
+    }
+
+    // ═══════════════════════════════════════════
+    //  AGENT HIRE MODULE
+    // ═══════════════════════════════════════════
+
+    #[test]
+    fun test_hire_create_and_query_task() {
+        let mut scenario = test_scenario::begin(ADMIN);
+        scenario.create_system_objects();
+        publish_module(&mut scenario);
+
+        let agent_a_id = fake_agent_id();
+        let agent_b_id = fake_agent_id();
+
+        scenario.next_tx(ADMIN);
+        let mut registry = scenario.take_shared<TaskRegistry>();
+        let mut clock = scenario.take_shared<Clock>();
+        let payment = coin::mint_for_testing<SUI>(1000, scenario.ctx());
+
+        let task_id = agent_hire::create_task(
+            &mut registry, agent_a_id, agent_b_id,
+            string::utf8(b"Translate this document"),
+            payment, &clock, scenario.ctx(),
+        );
+
+        assert!(agent_hire::total_tasks(&registry) == 1);
+
+        test_scenario::return_shared(registry);
+        test_scenario::return_shared(clock);
+
+        scenario.next_tx(ADMIN);
+        let task = test_scenario::take_from_sender_by_id<AgentTask>(&scenario, task_id);
+        assert!(agent_hire::task_status(&task) == 0);
+        assert!(agent_hire::task_budget(&task) == 1000);
+
+        let _id = object::id(&task);
+        transfer::public_transfer(task, ADMIN);
+        scenario.end();
+    }
+
+    #[test]
+    fun test_hire_accept_complete_pays() {
+        let mut scenario = test_scenario::begin(ADMIN);
+        scenario.create_system_objects();
+        publish_module(&mut scenario);
+
+        let agent_a_id = fake_agent_id();
+        let agent_b_id = fake_agent_id();
+        let hired_address = USER2;
+
+        scenario.next_tx(ADMIN);
+        let mut registry = scenario.take_shared<TaskRegistry>();
+        let mut clock = scenario.take_shared<Clock>();
+        let payment = coin::mint_for_testing<SUI>(5000, scenario.ctx());
+
+        let task_id = agent_hire::create_task(
+            &mut registry, agent_a_id, agent_b_id,
+            string::utf8(b"Write code"),
+            payment, &clock, scenario.ctx(),
+        );
+        test_scenario::return_shared(registry);
+        test_scenario::return_shared(clock);
+
+        scenario.next_tx(ADMIN);
+        let mut task = test_scenario::take_from_sender_by_id<AgentTask>(&scenario, task_id);
+        let mut clock2 = scenario.take_shared<Clock>();
+
+        agent_hire::accept_task(&mut task, &clock2);
+        assert!(agent_hire::task_status(&task) == 1);
+
+        agent_hire::complete_task(&mut task, hired_address, &clock2, scenario.ctx());
+        assert!(agent_hire::task_status(&task) == 2);
+
+        test_scenario::return_shared(clock2);
+        let _id = object::id(&task);
+        transfer::public_transfer(task, ADMIN);
+        scenario.end();
+    }
+
+    #[test]
+    fun test_hire_dispute_accepted_task() {
+        let mut scenario = test_scenario::begin(ADMIN);
+        scenario.create_system_objects();
+        publish_module(&mut scenario);
+
+        let agent_a_id = fake_agent_id();
+        let agent_b_id = fake_agent_id();
+
+        scenario.next_tx(ADMIN);
+        let mut registry = scenario.take_shared<TaskRegistry>();
+        let mut clock = scenario.take_shared<Clock>();
+        let payment = coin::mint_for_testing<SUI>(3000, scenario.ctx());
+
+        let task_id = agent_hire::create_task(
+            &mut registry, agent_a_id, agent_b_id,
+            string::utf8(b"Design a logo"),
+            payment, &clock, scenario.ctx(),
+        );
+        test_scenario::return_shared(registry);
+        test_scenario::return_shared(clock);
+
+        scenario.next_tx(ADMIN);
+        let mut task = test_scenario::take_from_sender_by_id<AgentTask>(&scenario, task_id);
+        let mut clock2 = scenario.take_shared<Clock>();
+
+        agent_hire::accept_task(&mut task, &clock2);
+        agent_hire::dispute_task(&mut task, &clock2);
+        assert!(agent_hire::task_status(&task) == 3);
+
+        test_scenario::return_shared(clock2);
+        let _id = object::id(&task);
+        transfer::public_transfer(task, ADMIN);
         scenario.end();
     }
 

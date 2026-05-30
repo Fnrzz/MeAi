@@ -193,4 +193,9 @@ module meai::agent_module {
     public fun total_agents(registry: &AgentRegistry): u64 {
         registry.total_agents
     }
+
+    #[test_only]
+    public fun create_registry_for_testing(ctx: &mut TxContext) {
+        init(ctx);
+    }
 }

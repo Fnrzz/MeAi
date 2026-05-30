@@ -27,10 +27,10 @@ Bukan lagi "infrastructure layer" tapi "autonomous AI agent" yang menggunakan Su
 |----------|-------|------|---------|---------|
 | **Real-World Application** | 40% | 30/40 | 15 | ✅ Agent punya on-chain identity, budget, bisa bayar LLM sendiri, hire agent lain via escrow |
 | **Agent Autonomy** | 25% | 20/25 | 5 | ✅ Agent pilih model termurah otomatis, sign Sui txn, track budget, decision streaming di UI |
-| **Technical Execution** | 15% | 13/15 | 10 | ✅ 6 Move modules, 15 tests, gateway + frontend typecheck clean, agent decision di SSE |
+| **Technical Execution** | 15% | 14/15 | 10 | ✅ 6 Move modules, **22 tests**, gateway + frontend typecheck clean, agent decision di SSE, deployed ke testnet |
 | **Creativity & Innovation** | 10% | 8/10 | 5 | ✅ Autonomous model selection + agent-to-agent hiring dengan escrow — unik di ekosistem Sui |
 | **Demo & Presentation** | 10% | 4/10 | 3 | ⚠️ Frontend agent pages sudah jalan, tapi belum deployed ke Vercel, belum ada video |
-| **TOTAL** | **100%** | **75/100** | **38** | **Naik 37 poin! Target 90+ masih butuh deployment + video demo** |
+| **TOTAL** | **100%** | **76/100** | **38** | **Naik 38 poin! Target 90+ masih butuh deployment + video demo** |
 
 ---
 
@@ -175,10 +175,10 @@ Agent A bisa hire Agent B untuk task tertentu. Pembayaran otomatis dari A ke B.
 |----------|---------|----------|--------|-------|
 | Real-World Application | 15/40 | 30/40 | 35/40 | +5 |
 | Agent Autonomy | 5/25 | 20/25 | 23/25 | +3 |
-| Technical Execution | 10/15 | 13/15 | 14/15 | +1 |
+| Technical Execution | 10/15 | 14/15 | 14/15 | 0 |
 | Creativity & Innovation | 5/10 | 8/10 | 9/10 | +1 |
 | Demo & Presentation | 3/10 | 4/10 | 9/10 | +5 |
-| **TOTAL** | **38/100** | **75/100** | **90/100** 🏆 | **+15** |
+| **TOTAL** | **38/100** | **76/100** | **90/100** 🏆 | **+14** |
 
 ---
 

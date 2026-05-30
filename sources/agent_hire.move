@@ -11,7 +11,7 @@ module meai::agent_hire {
     const STATUS_COMPLETED: u8 = 2;
     const STATUS_DISPUTED: u8 = 3;
 
-    public struct AgentTask has key {
+    public struct AgentTask has key, store {
         id: UID,
         hirer_agent_id: ID,
         hired_agent_id: ID,
@@ -164,5 +164,10 @@ module meai::agent_hire {
 
     public fun total_tasks(registry: &TaskRegistry): u64 {
         registry.total_tasks
+    }
+
+    #[test_only]
+    public fun create_registry_for_testing(ctx: &mut TxContext) {
+        init(ctx);
     }
 }
