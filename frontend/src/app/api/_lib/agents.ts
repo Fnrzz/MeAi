@@ -1,6 +1,15 @@
-import { routeRequest, getProvider } from "../llm/router.js";
-import { writeAuditLog } from "../walrus.js";
-import { queueDeduction } from "../settlement.js";
+/**
+ * Agent Runtime — In-memory agent management and autonomous decision engine.
+ *
+ * Agents autonomously pick the cheapest model from their allowed list,
+ * call SumoPod, track spending, log to Walrus, and settle on-chain.
+ */
+import { chatCompletion, type ChatMessage } from "./sumopod";
+import { writeAuditLog } from "./walrus";
+import { settleDeduction } from "./settlement";
+import { MODELS, estimateTokenCount } from "./constants";
+
+// ─── Types ──────────────────────────────────────────────────────
 
 export interface AgentConfig {
   id: string;
@@ -31,14 +40,7 @@ export interface AgentChatResult {
   requestId: string;
 }
 
-const MODELS = [
-  { id: "claude-sonnet-4", provider: "anthropic", inputPrice: 800, outputPrice: 4000 },
-  { id: "gpt-4o", provider: "openai", inputPrice: 600, outputPrice: 2500 },
-  { id: "gpt-4o-mini", provider: "openai", inputPrice: 150, outputPrice: 600 },
-  { id: "gemini-2.0-flash", provider: "google", inputPrice: 50, outputPrice: 200 },
-  { id: "llama-3-70b", provider: "atoma", inputPrice: 100, outputPrice: 100 },
-  { id: "mistral-large", provider: "mistral", inputPrice: 200, outputPrice: 600 },
-];
+// ─── In-Memory Store ────────────────────────────────────────────
 
 const agents = new Map<string, AgentConfig>();
 
@@ -68,21 +70,24 @@ export function deleteAgent(id: string): boolean {
   return agents.delete(id);
 }
 
-function estimateTokenCount(text: string): number {
-  return Math.ceil(text.length / 4);
-}
+// ─── Decision Engine ────────────────────────────────────────────
 
-function pickCheapestModel(allowedModels: string[], inputTokens: number, outputTokens: number): AgentDecision {
-  const available = allowedModels.length > 0
-    ? MODELS.filter((m) => allowedModels.includes(m.id))
-    : [...MODELS];
+function pickCheapestModel(
+  allowedModels: string[],
+  inputTokens: number,
+  outputTokens: number,
+): AgentDecision {
+  const available =
+    allowedModels.length > 0
+      ? MODELS.filter((m) => allowedModels.includes(m.id))
+      : [...MODELS];
 
   if (available.length === 0) {
-    const fallback = MODELS[2];
+    const fallback = MODELS.find((m) => m.id === "gpt-4o-mini") || MODELS[0];
     return {
       model: fallback.id,
       provider: fallback.provider,
-      reason: "No allowed models matched, fell back to gpt-4o-mini",
+      reason: "No allowed models matched, fell back to default",
       inputPrice: fallback.inputPrice,
       outputPrice: fallback.outputPrice,
       estimatedCost: 0,
@@ -91,13 +96,18 @@ function pickCheapestModel(allowedModels: string[], inputTokens: number, outputT
     };
   }
 
-  available.sort((a, b) => (a.inputPrice + a.outputPrice) - (b.inputPrice + b.outputPrice));
+  available.sort(
+    (a, b) => a.inputPrice + a.outputPrice - (b.inputPrice + b.outputPrice),
+  );
   const best = available[0];
-  const estimatedCost = (inputTokens * best.inputPrice + outputTokens * best.outputPrice) / 1_000_000;
+  const estimatedCost =
+    (inputTokens * best.inputPrice + outputTokens * best.outputPrice) /
+    1_000_000;
 
-  const reason = best === available[0] && available.length > 1
-    ? `Cheapest model among ${available.length} allowed options`
-    : `Only available model (${available.length} allowed)`;
+  const reason =
+    available.length > 1
+      ? `Cheapest model among ${available.length} allowed options`
+      : `Only available model (${available.length} allowed)`;
 
   return {
     model: best.id,
@@ -111,6 +121,8 @@ function pickCheapestModel(allowedModels: string[], inputTokens: number, outputT
   };
 }
 
+// ─── Agent Chat ─────────────────────────────────────────────────
+
 export async function agentChat(
   agentId: string,
   messages: { role: string; content: string }[],
@@ -122,17 +134,22 @@ export async function agentChat(
   if (!agent.isActive) throw new Error(`Agent ${agentId} is deactivated`);
   const agentName = agent.name;
 
-  const inputTokens = messages.reduce((sum, m) => sum + estimateTokenCount(m.content), 0);
-  const completionTokens = 0;
+  const inputTokens = messages.reduce(
+    (sum, m) => sum + estimateTokenCount(m.content),
+    0,
+  );
 
   const decision = pickCheapestModel(agent.allowedModels, inputTokens, 256);
 
-  const fullMessages = [
-    { role: "system" as const, content: agent.systemPrompt },
-    ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+  const fullMessages: ChatMessage[] = [
+    { role: "system", content: agent.systemPrompt },
+    ...messages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
   ];
 
-  const { response: llmResponse, usage } = await routeRequest({
+  const { response: llmResponse, usage } = await chatCompletion({
     model: decision.model,
     messages: fullMessages,
     stream: true,
@@ -144,21 +161,24 @@ export async function agentChat(
   decision.completionTokens = usage.completionTokens;
 
   const requestId = crypto.randomUUID();
+  const cost = usage.promptTokens + usage.completionTokens;
 
+  // Fire-and-forget: audit log + settlement
   writeAuditLog({
     capId,
     model: decision.model,
     inputTokens: usage.promptTokens,
     outputTokens: usage.completionTokens,
-    cost: usage.promptTokens + usage.completionTokens,
+    cost,
     timestamp: Date.now(),
     requestId,
   });
 
-  queueDeduction(capId, quotaId, usage.promptTokens + usage.completionTokens, decision.model);
+  settleDeduction(quotaId, cost, decision.model);
 
-  agent.spentToday += usage.promptTokens + usage.completionTokens;
+  agent.spentToday += cost;
 
+  // Prepend agent decision event to SSE stream
   const newHeaders = new Headers(llmResponse.headers);
   newHeaders.set("X-MeAi-Request-Id", requestId);
   newHeaders.set("X-MeAi-Agent-Id", agentId);
@@ -177,10 +197,9 @@ export async function agentChat(
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
-              const text = decoder.decode(value);
               if (!started) {
                 started = true;
-                const preamble = `data: {"type":"agent_decision","decision":${JSON.stringify(decision)},"agent":"${agentName}"}\n\n`;
+                const preamble = `data: ${JSON.stringify({ type: "agent_decision", decision, agent: agentName })}\n\n`;
                 controller.enqueue(encoder.encode(preamble));
               }
               controller.enqueue(value);

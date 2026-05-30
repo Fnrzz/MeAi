@@ -1,4 +1,9 @@
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8080";
+/**
+ * Gateway client — communicates with API routes.
+ * Now points to /api/ (same origin) instead of external gateway.
+ */
+
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || "/api";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
