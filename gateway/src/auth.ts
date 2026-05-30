@@ -1,17 +1,11 @@
-import { client, API_KEY_REGISTRY_ID } from "./sui.js";
+import { verifyPersonalMessageSignature } from "@mysten/sui/verify";
+import { client } from "./sui.js";
 
 export interface AuthResult {
   valid: boolean;
   owner?: string;
   tier?: number;
   error?: string;
-}
-
-interface ApiCapObject {
-  owner: string;
-  tier: number;
-  is_active: boolean;
-  allowed_models?: Record<string, boolean>;
 }
 
 export async function verifyCapability(
@@ -38,17 +32,37 @@ export async function verifyCapability(
     }
 
     const fields = obj.data.content.fields as Record<string, unknown>;
+    const value = (fields as any).value || fields;
+    const innerFields = value.fields || value;
 
-    if (fields.is_active === false) {
+    const owner = innerFields.owner as string | undefined;
+    if (!owner) {
+      return { valid: false, error: "Invalid capability object: no owner" };
+    }
+
+    const tier = (innerFields.tier as number) || 1;
+    const isActive = innerFields.is_active as boolean | undefined;
+    if (isActive === false) {
       return { valid: false, error: "Capability is revoked" };
     }
 
-    const owner = fields.owner as string;
-    if (!owner) {
-      return { valid: false, error: "Invalid capability object" };
+    const message = new TextEncoder().encode(`meai-${ts}`);
+
+    let publicKey;
+    try {
+      publicKey = await verifyPersonalMessageSignature(message, signature);
+    } catch {
+      return { valid: false, error: "Signature verification failed" };
     }
 
-    const tier = (fields.tier as number) || 1;
+    const signerAddress = publicKey.toSuiAddress();
+
+    if (signerAddress !== owner) {
+      return {
+        valid: false,
+        error: `Signer ${signerAddress} does not match capability owner ${owner}`,
+      };
+    }
 
     return { valid: true, owner, tier };
   } catch (err) {

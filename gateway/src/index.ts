@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { verifyCapability } from "./auth.js";
-import { routeRequest, getProvider } from "./llm/router.js";
+import { routeRequest, getProvider, type TokenUsage } from "./llm/router.js";
 import { queueDeduction, startSettlementLoop } from "./settlement.js";
 import { writeAuditLog } from "./walrus.js";
 import { client, MODEL_REGISTRY_ID } from "./sui.js";
@@ -10,10 +10,8 @@ import { client, MODEL_REGISTRY_ID } from "./sui.js";
 const app = new Hono();
 app.use("/*", cors());
 
-// Health check
 app.get("/health", (c) => c.json({ status: "ok", service: "meai-gateway", version: "1.0.0" }));
 
-// List available models
 const FALLBACK_MODELS = [
   { id: "claude-sonnet-4", provider: "anthropic", input_price: 800, output_price: 4000, object: "model" },
   { id: "gpt-4o", provider: "openai", input_price: 600, output_price: 2500, object: "model" },
@@ -57,7 +55,6 @@ app.get("/v1/models", async (c) => {
   }
 });
 
-// Chat completions
 app.post("/v1/chat/completions", async (c) => {
   try {
     const objectId = c.req.header("x-sui-object-id");
@@ -73,6 +70,8 @@ app.post("/v1/chat/completions", async (c) => {
       }, 401);
     }
 
+    const quotaId = c.req.header("x-sui-quota-id") || objectId;
+
     const body = await c.req.json();
     const model = body.model || "claude-sonnet-4";
 
@@ -81,7 +80,7 @@ app.post("/v1/chat/completions", async (c) => {
       return c.json({ error: { message: auth.error, type: "auth_error" } }, 403);
     }
 
-    const llmResponse = await routeRequest({
+    const { response: llmResponse, usage } = await routeRequest({
       model,
       messages: body.messages || [],
       stream: body.stream ?? true,
@@ -90,25 +89,37 @@ app.post("/v1/chat/completions", async (c) => {
     });
 
     const requestId = crypto.randomUUID();
+    const inputTokens = usage.promptTokens;
+    const outputTokens = usage.completionTokens;
+    const cost = inputTokens + outputTokens;
 
     writeAuditLog({
       capId: objectId,
       model,
-      inputTokens: 0,
-      outputTokens: 0,
-      cost: 0,
+      inputTokens,
+      outputTokens,
+      cost,
       timestamp: Date.now(),
       requestId,
     });
 
-    return llmResponse;
+    queueDeduction(objectId, quotaId, cost, model);
+
+    const newHeaders = new Headers(llmResponse.headers);
+    newHeaders.set("X-MeAi-Request-Id", requestId);
+    newHeaders.set("X-MeAi-Cost", String(cost));
+
+    return new Response(llmResponse.body, {
+      status: llmResponse.status,
+      statusText: llmResponse.statusText,
+      headers: newHeaders,
+    });
   } catch (err) {
     console.error("Request error:", err);
     return c.json({ error: { message: (err as Error).message, type: "server_error" } }, 500);
   }
 });
 
-// Embeddings
 app.post("/v1/embeddings", async (c) => {
   return c.json({ error: { message: "Embeddings endpoint coming soon", type: "not_implemented" } }, 501);
 });
@@ -119,8 +130,8 @@ const HOST = process.env.HOST || "0.0.0.0";
 startSettlementLoop();
 
 serve({ fetch: app.fetch, port: PORT, hostname: HOST }, (info) => {
-  console.log(`\n  🧠 MeAi Gateway`);
-  console.log(`  ─────────────────`);
+  console.log(`\n  \u{1F9E0} MeAi Gateway`);
+  console.log(`  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500`);
   console.log(`  Local:   http://localhost:${info.port}`);
   console.log(`  Health:  http://localhost:${info.port}/health`);
   console.log(`  Models:  http://localhost:${info.port}/v1/models\n`);
