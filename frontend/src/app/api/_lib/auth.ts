@@ -1,5 +1,9 @@
+/**
+ * Sui capability-based authentication.
+ * Verifies wallet signatures against on-chain ApiCapObject ownership.
+ */
 import { verifyPersonalMessageSignature } from "@mysten/sui/verify";
-import { client } from "./sui.js";
+import { suiClient } from "./sui";
 
 export interface AuthResult {
   valid: boolean;
@@ -22,7 +26,7 @@ export async function verifyCapability(
   }
 
   try {
-    const obj = await client.getObject({
+    const obj = await suiClient.getObject({
       id: objectId,
       options: { showContent: true },
     });

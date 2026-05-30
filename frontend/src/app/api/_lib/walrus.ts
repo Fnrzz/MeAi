@@ -1,3 +1,8 @@
+/**
+ * Walrus decentralized storage — audit log writer.
+ * Every LLM inference is logged as an immutable blob on Walrus.
+ */
+
 const WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space";
 
 export interface AuditEntry {

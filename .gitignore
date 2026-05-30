@@ -9,3 +9,6 @@ build/
 .DS_Store
 .turbo/
 .vercel/
+
+# Move build artifacts
+contracts/build/
