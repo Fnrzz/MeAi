@@ -3,7 +3,7 @@
 import { ConnectButton } from "@mysten/dapp-kit";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useState, useEffect } from "react";
-import { Menu, X, LayoutDashboard } from "lucide-react";
+import { Menu, X, LayoutDashboard, Bot } from "lucide-react";
 
 export default function Navbar() {
   const account = useCurrentAccount();
@@ -41,13 +41,22 @@ export default function Navbar() {
             Models
           </a>
           {account && (
-            <a
-              href="/dashboard"
-              className="flex items-center gap-1.5 text-sm font-medium text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              Dashboard
-            </a>
+            <>
+              <a
+                href="/agents"
+                className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full hover:bg-indigo-100 transition-colors"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                Agents
+              </a>
+              <a
+                href="/dashboard"
+                className="flex items-center gap-1.5 text-sm font-medium text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                Dashboard
+              </a>
+            </>
           )}
         </div>
 
@@ -65,9 +74,14 @@ export default function Navbar() {
           <a href="/#features" className="block text-sm text-gray-700 font-medium" onClick={() => setOpen(false)}>Features</a>
           <a href="/#models" className="block text-sm text-gray-700 font-medium" onClick={() => setOpen(false)}>Models</a>
           {account && (
-            <a href="/dashboard" className="block text-sm text-blue-600 font-medium" onClick={() => setOpen(false)}>
-              Dashboard →
-            </a>
+            <>
+              <a href="/agents" className="block text-sm text-indigo-600 font-medium" onClick={() => setOpen(false)}>
+                Agents →
+              </a>
+              <a href="/dashboard" className="block text-sm text-blue-600 font-medium" onClick={() => setOpen(false)}>
+                Dashboard →
+              </a>
+            </>
           )}
         </div>
       )}
