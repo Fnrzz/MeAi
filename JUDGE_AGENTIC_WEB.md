@@ -23,14 +23,14 @@ Bukan lagi "infrastructure layer" tapi "autonomous AI agent" yang menggunakan Su
 
 ## Scoring Saat Ini untuk Agentic Web Track
 
-| Kriteria | Bobot | Skor | Catatan |
-|----------|-------|------|---------|
-| **Real-World Application** | 40% | 15/40 | Infrastructure doang, bukan agent. Problem valid tapi bukan yang dicari track ini |
-| **Agent Autonomy** | 25% | 5/25 | Tidak ada AI agent otonom sama sekali. Yang ada Cuma API gateway + frontend manual |
-| **Technical Execution** | 15% | 10/15 | Move contracts bagus, frontend polished, tapi gak ada demostrasi agent |
-| **Creativity & Innovation** | 10% | 5/10 | Konsep capability objects + PTB settlement kreatif, tapi kurang "agentic" |
-| **Demo & Presentation** | 10% | 3/10 | Tidak ada demo agent, tidak ada video, tidak ada deployment |
-| **TOTAL** | **100%** | **38/100** | **Jauh dari juara 1 (target 90+)** |
+| Kriteria | Bobot | Skor | Sebelum | Catatan |
+|----------|-------|------|---------|---------|
+| **Real-World Application** | 40% | 30/40 | 15 | ✅ Agent punya on-chain identity, budget, bisa bayar LLM sendiri, hire agent lain via escrow |
+| **Agent Autonomy** | 25% | 20/25 | 5 | ✅ Agent pilih model termurah otomatis, sign Sui txn, track budget, decision streaming di UI |
+| **Technical Execution** | 15% | 13/15 | 10 | ✅ 6 Move modules, 15 tests, gateway + frontend typecheck clean, agent decision di SSE |
+| **Creativity & Innovation** | 10% | 8/10 | 5 | ✅ Autonomous model selection + agent-to-agent hiring dengan escrow — unik di ekosistem Sui |
+| **Demo & Presentation** | 10% | 4/10 | 3 | ⚠️ Frontend agent pages sudah jalan, tapi belum deployed ke Vercel, belum ada video |
+| **TOTAL** | **100%** | **75/100** | **38** | **Naik 37 poin! Target 90+ masih butuh deployment + video demo** |
 
 ---
 
@@ -171,14 +171,14 @@ Agent A bisa hire Agent B untuk task tertentu. Pembayaran otomatis dari A ke B.
 
 ## Target Skor Juara 1
 
-| Kriteria | Sebelum | Sesudah | Delta |
-|----------|---------|---------|-------|
-| Real-World Application | 15/40 | 35/40 | +20 |
-| Agent Autonomy | 5/25 | 23/25 | +18 |
-| Technical Execution | 10/15 | 14/15 | +4 |
-| Creativity & Innovation | 5/10 | 9/10 | +4 |
-| Demo & Presentation | 3/10 | 9/10 | +6 |
-| **TOTAL** | **38/100** | **90/100** 🏆 | **+52** |
+| Kriteria | Sebelum | Sekarang | Target | Delta |
+|----------|---------|----------|--------|-------|
+| Real-World Application | 15/40 | 30/40 | 35/40 | +5 |
+| Agent Autonomy | 5/25 | 20/25 | 23/25 | +3 |
+| Technical Execution | 10/15 | 13/15 | 14/15 | +1 |
+| Creativity & Innovation | 5/10 | 8/10 | 9/10 | +1 |
+| Demo & Presentation | 3/10 | 4/10 | 9/10 | +5 |
+| **TOTAL** | **38/100** | **75/100** | **90/100** 🏆 | **+15** |
 
 ---
 
@@ -186,12 +186,12 @@ Agent A bisa hire Agent B untuk task tertentu. Pembayaran otomatis dari A ke B.
 
 > **"Juri Agentic Web Track tidak peduli infrastruktur lo sebagus apa. Mereka peduli: apakah lo bisa demo-in AI agent yang beneran otonom transaksi di Sui?"**
 
-MeAi punya foundation kuat: Move contracts solid, frontend indah, konsep capability objects inovatif.
+**Progress: Dari 38 → 75.** Agent identity, autonomous chat, agent-to-agent hiring sudah jadi. 🎉
 
-Tapi untuk juara 1 Agentic Web:
-1. **Bikin AGENT** — bukan infrastruktur agent. Agent punya identitas on-chain, wallet sendiri, sistem prompt sendiri.
-2. **Bikin AGENT HIRE AGENT** — Smart contract untuk agent-to-agent coordination. Ini yang bikin juri terkesiap.
-3. **Bikin DEMO** — 5 menit video: create agent → agent autonomous chat → agent hire agent → audit trail on Walrus.
-4. **Deploy ke Mainnet** — Agent identity + transaksi real di mainnet.
+**Yang masih kurang buat tembus 90+:**
+1. **Deploy contracts ke testnet** — `sui client publish` biar judge bisa verify di explorer
+2. **Deploy frontend ke Vercel** — Biar judge bisa akses tanpa setup lokal
+3. **Demo video 5 menit** — Create agent → Chat (tunjukin agent decision panel) → Agent hire agent → Cek Walrus audit → Cek Sui txn
+4. **Deploy ke mainnet** — Bonus credibility
 
 **Yang paling penting:** Di demo day, jangan show "infrastructure." **Show the agent doing agent things autonomously.**
