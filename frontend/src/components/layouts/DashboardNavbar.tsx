@@ -3,11 +3,12 @@
 import { ConnectButton } from "@mysten/dapp-kit";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useState, useEffect } from "react";
-import { Menu, X, Home, Key, Play, FileText, ShieldCheck } from "lucide-react";
+import { Menu, X, Home, Key, Play, FileText, ShieldCheck, Bot } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
+  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/api-keys", label: "API Keys", icon: Key },
   { href: "/playground", label: "Playground", icon: Play },
   { href: "/docs", label: "Docs", icon: FileText },

@@ -6,6 +6,7 @@ import { routeRequest, getProvider, type TokenUsage } from "./llm/router.js";
 import { queueDeduction, startSettlementLoop } from "./settlement.js";
 import { writeAuditLog } from "./walrus.js";
 import { client, MODEL_REGISTRY_ID } from "./sui.js";
+import { createAgent, getAgent, listAgents, updateAgent, deleteAgent, agentChat } from "./agents/runtime.js";
 
 const app = new Hono();
 app.use("/*", cors());
@@ -122,6 +123,105 @@ app.post("/v1/chat/completions", async (c) => {
 
 app.post("/v1/embeddings", async (c) => {
   return c.json({ error: { message: "Embeddings endpoint coming soon", type: "not_implemented" } }, 501);
+});
+
+app.post("/v1/agents", async (c) => {
+  try {
+    const body = await c.req.json();
+    const owner = c.req.header("x-sui-owner");
+    if (!owner) return c.json({ error: { message: "X-Sui-Owner header required", type: "auth_error" } }, 401);
+
+    const agent = createAgent({
+      id: crypto.randomUUID(),
+      name: body.name || "Unnamed Agent",
+      owner,
+      systemPrompt: body.system_prompt || "You are a helpful AI assistant.",
+      allowedModels: body.allowed_models || [],
+      dailyBudget: body.daily_budget || 100000,
+      spentToday: 0,
+      isActive: true,
+      createdAt: Date.now(),
+    });
+
+    return c.json(agent, 201);
+  } catch (err) {
+    console.error("Create agent error:", err);
+    return c.json({ error: { message: (err as Error).message, type: "server_error" } }, 500);
+  }
+});
+
+app.get("/v1/agents", async (c) => {
+  try {
+    const owner = c.req.query("owner");
+    const result = listAgents(owner);
+    return c.json({ object: "list", data: result });
+  } catch (err) {
+    return c.json({ error: { message: (err as Error).message, type: "server_error" } }, 500);
+  }
+});
+
+app.get("/v1/agents/:id", async (c) => {
+  try {
+    const agent = getAgent(c.req.param("id"));
+    if (!agent) return c.json({ error: { message: "Agent not found", type: "not_found" } }, 404);
+    return c.json(agent);
+  } catch (err) {
+    return c.json({ error: { message: (err as Error).message, type: "server_error" } }, 500);
+  }
+});
+
+app.patch("/v1/agents/:id", async (c) => {
+  try {
+    const body = await c.req.json();
+    const agent = updateAgent(c.req.param("id"), body);
+    if (!agent) return c.json({ error: { message: "Agent not found", type: "not_found" } }, 404);
+    return c.json(agent);
+  } catch (err) {
+    return c.json({ error: { message: (err as Error).message, type: "server_error" } }, 500);
+  }
+});
+
+app.delete("/v1/agents/:id", async (c) => {
+  try {
+    const deleted = deleteAgent(c.req.param("id"));
+    if (!deleted) return c.json({ error: { message: "Agent not found", type: "not_found" } }, 404);
+    return c.json({ success: true });
+  } catch (err) {
+    return c.json({ error: { message: (err as Error).message, type: "server_error" } }, 500);
+  }
+});
+
+app.post("/v1/agents/:id/chat", async (c) => {
+  try {
+    const agentId = c.req.param("id");
+    const objectId = c.req.header("x-sui-object-id");
+    const signature = c.req.header("x-sui-signature");
+    const timestamp = c.req.header("x-sui-timestamp");
+
+    if (!objectId || !signature || !timestamp) {
+      return c.json({ error: { message: "Missing Sui auth headers", type: "auth_error" } }, 401);
+    }
+
+    const body = await c.req.json();
+    const quotaId = c.req.header("x-sui-quota-id") || objectId;
+
+    const auth = await verifyCapability(objectId, signature, timestamp, "agent");
+    if (!auth.valid) {
+      return c.json({ error: { message: auth.error, type: "auth_error" } }, 403);
+    }
+
+    const { response, decision, requestId } = await agentChat(
+      agentId,
+      body.messages || [],
+      quotaId,
+      objectId,
+    );
+
+    return response;
+  } catch (err) {
+    console.error("Agent chat error:", err);
+    return c.json({ error: { message: (err as Error).message, type: "server_error" } }, 500);
+  }
 });
 
 const PORT = parseInt(process.env.PORT || "8080", 10);

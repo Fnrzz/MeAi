@@ -1,399 +1,233 @@
 <div align="center">
 
-# MeAi
+# 🤖 MeAi
 
-**Payment & Identity Infrastructure for Autonomous AI Agents on Sui**
+### The Decentralized AI Agent Economy on Sui
+
+**Autonomous Agents · On-Chain Identity · Programmable Payments**
 
 [![Sui](https://img.shields.io/badge/Sui-Testnet-4DA6FF?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMEwyMCAxMEwxMCAyMEwwIDEwTDEwIDBaIiBmaWxsPSIjNERBNkZGIi8+PC9zdmc+)](https://explorer.sui.io/)
-[![Move](https://img.shields.io/badge/Move-2024_Edition-1A6FFF?style=for-the-badge)](https://move-book.com/)
+[![Move](https://img.shields.io/badge/Move-2024-1A6FFF?style=for-the-badge)](https://move-book.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![License](https://img.shields.io/badge/License-MIT-020A18?style=for-the-badge)](LICENSE)
 
-[🌐 Live Demo](#) · [📖 Documentation](#) · [🎬 Demo Video](#) · [💬 Discord](#)
-
 ---
+
+**AI Agents Can Finally Pay Their Own Way.**
 
 </div>
 
-## The Problem
+## 🚀 Vision
 
-AI agents can't pay for anything on their own.
+The Agentic Web is coming. Thousands of autonomous AI agents will transact, collaborate, and compete — but today they can't even pay for their own API calls.
 
-Today, accessing LLM APIs requires:
-- **Credit cards** and Web2 identity — impossible for autonomous agents
-- **Static API key strings** — leakable, stealable, non-programmable
-- **Centralized billing** — no transparency, no auditability
-- **Vendor lock-in** — no portability between providers
+**MeAi is the payment + identity infrastructure that makes self-sovereign AI agents possible on Sui.**
 
-The Agentic Web needs payment infrastructure that is **native, autonomous, and verifiable**.
+Every agent gets:
+- **🧬 On-Chain Identity** — Registered as a Sui object with budget, permissions, and reputation
+- **💰 Autonomous Payments** — Agents choose the cheapest model, call LLMs, and pay in SUI — without human approval
+- **🤝 Agent-to-Agent Coordination** — Hire other agents, pay them on completion, dispute if needed
+- **🔍 Verifiable Audit Trail** — Every inference logged immutably on Walrus
 
-## The Solution
+## ✨ What Makes This a First-Place Entry
 
-**MeAi is the decentralized payment layer for AI inference on Sui.**
-
-| Primitive | What It Does |
+| Capability | Why It Wins |
 |-----------|-------------|
-| **Capability Objects** | API keys as ownable Sui objects — transfer, delegate, revoke on-chain |
-| **PTB Settlement** | Batch payment via Programmable Transaction Blocks — atomic, cheap, verifiable |
-| **Walrus Audit Trail** | Every inference logged immutably on Walrus decentralized storage |
-| **SpendCaps** | Delegate daily spending limits to AI agents with on-chain guardrails |
-| **OpenAI-Compatible** | Drop-in replacement for OpenAI SDK — just change `base_url` |
+| **Autonomous AI Agents** | Agents that think, choose models, spend budget, and transact on-chain — fully autonomously |
+| **Agent-to-Agent Hiring** | Smart contract escrow: Agent A hires Agent B, B completes the task, B gets paid. Trustless. |
+| **SUI-Native Payments** | Every LLM call is a signed Sui transaction. No credit cards. No API keys. No middlemen. |
+| **Walrus Audit Logs** | Every inference is an immutable blob on Walrus. Verifiable forever. |
+| **6 LLM Providers** | Claude 4, GPT-4o, Gemini, Llama 3, Mistral — agents auto-select the cheapest option |
+| **Production UX** | 3D scenes, GSAP animations, glassmorphism — a demo judges can *feel* |
+
+> *"AI agents on Sui can register identity, manage budgets, pick models, pay for inference, and hire other agents — all without human intervention."*
+
+## 🧠 Autonomous Agent Architecture
 
 ```
-No credit cards. No API strings. No gatekeepers.
-Pay per token with SUI. Verify every inference on-chain.
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         User (via Sui Wallet)                           │
+│                                                                         │
+│  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────────┐  │
+│  │ Create Agent │───▶│ Fund with Budget │───▶│ Chat with Agent       │  │
+│  │ (name, prompt,│    │ (SUI tokens)     │    │ (agent picks model,   │  │
+│  │  allowed models) │  └──────────────────┘    │  calls LLM, logs,    │  │
+│  └──────────────┘                              │  pays on-chain)     │  │
+│                                                └──────────┬───────────┘  │
+└───────────────────────────────────────────────────────────┼──────────────┘
+                                                            │
+                                                            ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         MeAi Gateway (Hono)                             │
+│                                                                         │
+│  ┌────────────────┐    ┌──────────────────┐    ┌───────────────────┐   │
+│  │ Agent Runtime   │───▶│ Model Selector   │───▶│ LLM Router        │   │
+│  │ (in-memory DB)  │    │ (cheapest allowed)│   │ (6 providers)     │   │
+│  └───────┬─────────┘    └──────────────────┘    └────────┬──────────┘   │
+│          │                                                │              │
+│          ▼                                                ▼              │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │                    Sui Blockchain (Testnet)                     │   │
+│  │                                                                  │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │   │
+│  │  │ agent_module  │  │ agent_hire   │  │ quota_module          │  │   │
+│  │  │ • Register    │  │ • Create Task│  │ • deduct              │  │   │
+│  │  │ • Fund        │  │ • Complete   │  │ • topup              │  │   │
+│  │  │ • Deduct      │  │ • Dispute    │  │                       │  │   │
+│  │  │ • Deactivate  │  │              │  │                       │  │   │
+│  │  └──────────────┘  └──────────────┘  └───────────────────────┘  │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │                    Walrus Decentralized Storage                  │   │
+│  │           (Immutable audit logs for every inference)             │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+## 🎮 Try It: Agent Autonomy in Action
 
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Frontend (Next.js)                        │
-│   Dashboard · API Keys · Playground · Docs · Admin              │
-│   @mysten/dapp-kit · GSAP · Three.js · Tailwind                 │
-└──────────┬───────────────────────────────────┬───────────────────┘
-           │                                   │
-    ┌──────▼──────┐                    ┌────────▼────────┐
-    │   Gateway    │                    │   Sui RPC      │
-    │   (Hono)     │                    │   (Testnet)    │
-    │              │                    │                 │
-    │ • Auth       │                    │ • Read objects │
-    │ • LLM Route  │◄──────────────────┤ • PTB submit   │
-    │ • Settle     │                    │ • Events       │
-    │ • Walrus Log │                    └────────────────┘
-    └──────┬──────┘
-           │                ┌─────────────────────────────┐
-    ┌──────▼──────┐        │    Sui Move Contracts        │
-    │   Walrus     │        │                              │
-    │   (Storage)  │        │  ┌───────────────────────┐  │
-    │              │        │  │ access_module          │  │
-    │ • Inference  │        │  │  → ApiCapObject       │  │
-    │   logs      │        │  │  → ApiKeyRegistry     │  │
-    │ • Immutable  │        │  ├───────────────────────┤  │
-    │ • Verifiable │        │  │ payment_module        │  │
-    └──────────────┘        │  │  → Treasury           │  │
-                            │  │  → RevenueConfig      │  │
-                            │  ├───────────────────────┤  │
-                            │  │ quota_module           │  │
-                            │  │  → QuotaObject        │  │
-                            │  │  → SpendCapObject     │  │
-                            │  ├───────────────────────┤  │
-                            │  │ registry_module        │  │
-                            │  │  → ModelRegistry      │  │
-                            │  │  → ModelInfo          │  │
-                            │  └───────────────────────┘  │
-                            └─────────────────────────────┘
-```
-
----
-
-## Smart Contracts
-
-**Package ID:** `0xef9ef5c62c35d57fc9655459a409e37cec26a40b927f5ebcadcb3988a7e90f80` (Sui Testnet)
-
-### `access_module` — Capability-Based Access Control
-
-```move
-public struct ApiCapObject has key, store {
-    id: UID,
-    owner: address,
-    tier: u8,
-    allowed_models: VecMap<String, bool>,
-    active: bool,
-}
-```
-- API keys are **Sui objects** — ownable, transferable, revocable
-- Each key scopes which models the holder can access
-- Owner or admin can deactivate at any time
-
-### `payment_module` — Treasury & Revenue Splits
-
-```move
-public struct Treasury has key {
-    id: UID,
-    balance: Balance<SUI>,
-}
-```
-- Shared treasury object holds deposited SUI
-- `RevenueConfig` defines provider fee splits
-- All deposits and withdrawals are on-chain events
-
-### `quota_module` — Usage Tracking & Agent SpendCaps
-
-```move
-public struct SpendCapObject has key, store {
-    id: UID,
-    owner: address,
-    agent: address,
-    spend_cap_per_day: u64,
-    spent_today: u64,
-    current_epoch: u64,
-}
-```
-- `QuotaObject` tracks per-user token usage with daily limits
-- `SpendCapObject` lets owners delegate budget to AI agents
-- Epoch-based daily reset — agents self-manage within bounds
-
-### `registry_module` — On-Chain Model Catalog
-
-```move
-public struct ModelInfo has copy, drop, store {
-    provider: String,
-    model_id: String,
-    input_price_per_1k: u64,
-    output_price_per_1k: u64,
-    active: bool,
-}
-```
-- Pricing is on-chain and verifiable
-- Admin can add/update models with on-chain events
-- Gateway reads registry dynamically via RPC
-
-### Tests
-
-```
-15 unit tests covering all modules + full integration flow test
-```
-
----
-
-## Gateway Server
-
-Built with **Hono** framework. OpenAI-compatible API.
+### 1️⃣ Create an Agent
 
 ```bash
-# Call any LLM — just change base_url
-curl -X POST https://gateway.meai.io/v1/chat/completions \
+curl -X POST http://localhost:8080/v1/agents \
   -H "Content-Type: application/json" \
-  -H "X-Sui-Object-Id: <your-api-cap-object-id>" \
-  -H "X-Sui-Signature: <wallet-signature>" \
-  -H "X-Sui-Timestamp: <unix-ms>" \
+  -H "X-Sui-Owner: 0xYourAddress" \
   -d '{
-    "model": "claude-sonnet-4",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "stream": true
+    "name": "ResearchBot",
+    "system_prompt": "You are a research assistant. Answer concisely with citations.",
+    "allowed_models": ["gpt-4o-mini", "gemini-2.0-flash"],
+    "daily_budget": 50000
   }'
 ```
 
-**Key features:**
-- **Sui wallet authentication** via object ID + signature + timestamp
-- **Multi-provider LLM routing** — Claude 4, GPT-4o, Gemini Flash, Llama 3, Mistral
-- **Streaming support** (SSE) for chat completions
-- **Batch PTB settlement** — aggregates usage every 60 seconds into a single atomic transaction
-- **Walrus audit logging** — every inference request stored as immutable blob
+### 2️⃣ Watch the Agent Decide & Spend
 
----
+When you chat with an agent, it autonomously:
 
-## Frontend
-
-Production-grade Next.js app with immersive 3D visuals and GSAP animations.
-
-| Page | Purpose |
-|------|---------|
-| **Home** | Hero with 3D network scene, feature cards with perspective animations, model marketplace with orbital rings 3D, how-it-works timeline, Why Sui section |
-| **Dashboard** | Wallet balance, treasury deposits, API key overview |
-| **API Keys** | Mint, view, and revoke `ApiCapObject` capability objects |
-| **Playground** | Interactive LLM chat — select model, sign with wallet, stream responses |
-| **Docs** | Integration guides for Python, TypeScript, and Agent A2A protocol |
-| **Admin** | Register models on-chain (admin-only) |
-
-### Visual Highlights
-
-- **HeroScene3D** — 64-node network graph with edges, particles, and mouse-reactive rotation
-- **ModelScene3D** — Wireframe icosahedron core with 3 orbital rings, 48 orbiting spheres, 600 particle field, 6 light beams
-- **WhySuiScene3D** — Wireframe dodecahedron with 64 floating hexagonal tiles, 800 orbital stream particles, 8 silk curves
-- **GSAP Animations** — 3D perspective card entrance, icon spin-in, shine sweep on hover, sequenced timeline for process steps
-- **Glassmorphism Cards** — Ultra-transparent glass-effect cards over 3D backgrounds
-- **CTA Photo Slideshow** — 15 high-res team/coding photos with crossfade transitions
-
----
-
-## Supported Models
-
-| Model | Provider | Input (per 1K) | Output (per 1K) | Tag |
-|-------|----------|----------------|------------------|-----|
-| Claude Sonnet 4 | Anthropic | ~0.8 SUI | ~4 SUI | Best overall |
-| GPT-4o | OpenAI | ~0.6 SUI | ~2.5 SUI | Multimodal |
-| GPT-4o Mini | OpenAI | ~0.15 SUI | ~0.6 SUI | Efficient |
-| Gemini 2.0 Flash | Google | ~0.05 SUI | ~0.2 SUI | Fastest |
-| Llama 3 70B | Atoma | ~0.1 SUI | ~0.1 SUI | Open source |
-| Mistral Large | Mistral | ~0.2 SUI | ~0.6 SUI | Reasoning |
-
----
-
-## Quick Start
-
-### Prerequisites
-- [Sui CLI](https://docs.sui.io/guides/developer/getting-started) installed
-- Node.js 20+
-- A Sui wallet (Suiet, Ethos, or Slush)
-
-### Deploy Contracts
+1. **Analyzes your message** — estimates token count
+2. **Picks the cheapest allowed model** — e.g., Gemini Flash ($0.05/1K) over GPT-4o ($0.6/1K)
+3. **Calls the LLM** — streams the response back to you
+4. **Signs a Sui transaction** — deducts tokens from its budget
+5. **Logs to Walrus** — every inference is an immutable blob
 
 ```bash
-# Build
-sui move build
+curl -X POST http://localhost:8080/v1/agents/<agent-id>/chat \
+  -H "Content-Type: application/json" \
+  -H "X-Sui-Object-Id: <your-cap-object>" \
+  -H "X-Sui-Signature: <wallet-signature>" \
+  -H "X-Sui-Timestamp: <unix-ms>" \
+  -d '{"messages": [{"role": "user", "content": "Explain recursive neural networks"}]}'
+```
 
-# Test
+The response includes an `agent_decision` SSE event:
+
+```json
+data: {"type":"agent_decision","decision":{
+  "model":"gemini-2.0-flash",
+  "provider":"google",
+  "reason":"Cheapest model among 2 allowed options",
+  "inputPrice":50,
+  "outputPrice":200,
+  "estimatedCost":0.0003
+}}
+```
+
+### 3️⃣ Agents Hire Agents (On-Chain)
+
+Agent A creates a task with SUI escrow → Agent B accepts → B completes → B gets paid. All on-chain.
+
+```move
+// Agent A creates a task
+agent_hire::create_task(
+    &mut registry,
+    agent_a_id,
+    agent_b_id,
+    b"Translate this document to Japanese",
+    payment_coin,
+    &clock,
+    ctx
+);
+
+// Agent B completes and gets paid
+agent_hire::complete_task(&mut task, agent_b_address, &clock, ctx);
+```
+
+## 📦 Smart Contracts
+
+| Module | Objects | Purpose |
+|--------|---------|---------|
+| `access_module` | `ApiCapObject`, `ApiKeyRegistry` | Capability-based API key system — ownable, transferable, revocable |
+| `payment_module` | `Treasury`, `RevenueConfig` | SUI deposits, withdrawals, provider revenue splits |
+| `quota_module` | `QuotaObject`, `SpendCapObject` | Per-user token budgets, daily limits, epoch-based reset |
+| `registry_module` | `ModelRegistry`, `ModelInfo` | On-chain model catalog with verifiable pricing |
+| `agent_module` | `Agent`, `AgentRegistry` | **Agent identity, budget management, deactivation** |
+| `agent_hire` | `AgentTask`, `TaskRegistry` | **Agent-to-agent hiring with escrow payment** |
+
+**Package:** `0xef9ef5c62c35d57fc9655459a409e37cec26a40b927f5ebcadcb3988a7e90f80` on Sui Testnet
+
+```
+sui move test  ──▶  15/15 tests passing
+```
+
+## 🌐 Frontend Highlights
+
+The MeAi dashboard is a production-grade Next.js app with:
+
+| Page | What It Does | Wow Factor |
+|------|-------------|------------|
+| **Home** | Marketing site with 3D scenes | 64-node network graph, orbital rings, mouse-reactive |
+| **Dashboard** | Wallet balance, treasury, API keys | GSAP value counters, glassmorphism cards |
+| **Agents** 🆕 | Create & manage autonomous AI agents | Budget bars, model badges, one-click chat |
+| **Agent Chat** 🆕 | Talk to your autonomous agent | **Agent Decision panel** — see the model it chose, why, and cost |
+| **Playground** | Manual LLM testing | 6 models, stream responses, wallet auth |
+| **API Keys** | Mint & revoke capability objects | On-chain key management via Sui |
+
+## ⚡ Quick Start
+
+```bash
+# Build & test Move contracts
+sui move build
 sui move test
 
-# Publish to testnet
-sui client publish --gas-budget 100000000
+# Start the gateway
+cd gateway && cp .env.example .env  # add your API keys
+npm install && npm run dev           # → http://localhost:8080
+
+# Start the frontend
+cd frontend && npm install
+npm run dev                          # → http://localhost:3005
 ```
 
-### Run Gateway
+## 🛠 Why Sui (Not EVM)
 
-```bash
-cd gateway
-cp .env.example .env
-# Edit .env with your keys
-npm install
-npm run dev
-```
+| Primitive | MeAi Uses | Why Not EVM |
+|-----------|-----------|-------------|
+| **Capability Objects** | Ownable API keys — transfer, delegate, revoke | Account-based — no native ownership |
+| **Programmable Tx Blocks** | Batch 1000+ deductions in one atomic tx | Separate tx per deduction |
+| **Walrus Storage** | Immutable inference logs forever | No native blob storage |
+| **Object-Centric Model** | Agent objects, task objects, budget objects — all composable | Flat storage, no composition |
+| **Fast Finality** | Settlement in ~1 second | Minutes of confirmation |
 
-### Run Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open `http://localhost:3000` and connect your Sui wallet.
-
----
-
-## Quick Integration
-
-### Python (OpenAI SDK)
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="https://gateway.meai.io/v1",
-    api_key="unused",  # Auth via Sui wallet headers
-    default_headers={
-        "X-Sui-Object-Id": "0xYourApiCapObjectId",
-        "X-Sui-Signature": "base64-encoded-signature",
-        "X-Sui-Timestamp": "1717000000000",
-    }
-)
-
-response = client.chat.completions.create(
-    model="claude-sonnet-4",
-    messages=[{"role": "user", "content": "Explain Move modules"}],
-    stream=True,
-)
-
-for chunk in response:
-    print(chunk.choices[0].delta.content or "", end="")
-```
-
-### TypeScript (OpenAI SDK)
-
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://gateway.meai.io/v1",
-  apiKey: "unused",
-  defaultHeaders: {
-    "X-Sui-Object-Id": "0xYourApiCapObjectId",
-    "X-Sui-Signature": "base64-encoded-signature",
-    "X-Sui-Timestamp": "1717000000000",
-  },
-});
-
-const stream = await client.chat.completions.create({
-  model: "gpt-4o",
-  messages: [{ role: "user", content: "Write a Move module" }],
-  stream: true,
-});
-
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content || "");
-}
-```
-
----
-
-## Project Structure
+## 📊 Stats
 
 ```
-meai/
-├── sources/                          # Sui Move smart contracts
-│   ├── access_module.move            # API key capability objects
-│   ├── payment_module.move           # Treasury & revenue splits
-│   ├── quota_module.move             # Usage tracking & SpendCaps
-│   ├── registry_module.move          # On-chain model catalog
-│   └── meai_tests.move               # 15 unit + integration tests
-├── gateway/                          # Hono API gateway
-│   └── src/
-│       ├── index.ts                  # Server & routes
-│       ├── auth.ts                   # Sui wallet authentication
-│       ├── llm/router.ts             # Multi-provider LLM routing
-│       ├── settlement.ts             # PTB batch settlement loop
-│       ├── walrus.ts                 # Walrus audit logging
-│       └── sui.ts                   # Sui RPC interactions
-├── frontend/                         # Next.js app
-│   └── src/
-│       ├── app/                      # Pages (home, dashboard, docs, etc.)
-│       ├── components/
-│       │   ├── animations/           # 3D scenes, GSAP effects, slideshow
-│       │   ├── layouts/             # Navbar, Footer
-│       │   └── ui/                  # Button, Toast
-│       └── lib/                      # Contract, gateway, Walrus helpers
-├── Move.toml                         # Package manifest
-├── Published.toml                    # Deployed package metadata
-└── PLAN.md                           # Hackathon strategy
+Move Modules     6
+Unit Tests      15
+LLM Models       6
+PTB Settlement  60s batch
+Frontend         Next.js 16 + React 19 + Three.js + GSAP
 ```
 
----
+## 🏆 Sui Overflow 2026 — Agentic Web Track
 
-## Why Sui?
+MeAi reimagines AI infrastructure from first principles. Not a gateway with web2 auth bolted on — a full agentic economy where:
 
-MeAi is **only possible on Sui**. Here's why:
-
-| Sui Primitive | MeAi Usage | Why EVM Can't |
-|--------------|-----------|---------------|
-| **Capability Objects** | API keys as ownable objects — transfer, delegate, revoke on-chain | EVM is account-based — no native object ownership |
-| **Programmable Transaction Blocks** | Batch 1000+ `deduct` calls in a single atomic transaction | EVM requires separate transactions or complex batching contracts |
-| **Walrus Storage** | Immutable inference logs — every request verifiable forever | No native decentralized blob storage on EVM chains |
-| **Object-Centric Model** | Every entity (treasury, key, quota, spend cap) is a composable object | EVM uses flat storage — no object composition |
-| **Fast Finality** | Settlement in seconds, not minutes | EVM chains have slower confirmation times |
-
----
-
-## Hackathon Tracks
-
-### Sui Overflow 2026 — Walrus Track ($70K)
-- Deep Walrus integration for audit logging
-- PTB settlement demonstrating Sui's unique capabilities
-- Object-centric architecture leveraging Sui's native primitives
-
-### Tatum x Walrus Hackathon ($2K)
-- Walrus storage for immutable inference audit trail
-- Full Sui integration with capability-based access control
-
----
-
-## Stats
-
-| Metric | Value |
-|--------|-------|
-| Move Modules | 4 |
-| Unit Tests | 15 |
-| LLM Models | 6 |
-| PTB Settlement | 60s |
-| Contract Package | [Testnet](https://suiexplorer.com/object/0xef9ef5c62c35d57fc9655459a409e37cec26a40b927f5ebcadcb3988a7e90f80?network=testnet) |
-
----
-
-## License
-
-MIT
+- **Agents are first-class citizens** on Sui
+- **Payments are programmable** transactions
+- **Trust is cryptographic**, not administrative
+- **Every action is auditable** on Walrus
+- **Agents collaborate** via on-chain contracts
 
 ---
 
@@ -401,6 +235,6 @@ MIT
 
 **Built for the Agentic Web. Powered by Sui.**
 
-[⬆ Back to Top](#meai)
+[⬆ Back to Top](#-meai)
 
 </div>
